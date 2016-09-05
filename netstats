@@ -35,5 +35,6 @@ while read line; do
     stats+="$prefix.${vals[0]}.${keys[$i]} ${vals[$i]} $timestamp\n"
   done
 done < <(egrep -e ':' /proc/net/dev | grep -v 'lo:')
+#printf "$stats"
 stats=$(egrep -f <(printf "$filters") <(printf "$stats"))
 printf "$stats" | grep -v ' 0 ' | nc $graphite_host $graphite_port
