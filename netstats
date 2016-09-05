@@ -1,0 +1,39 @@
+#!/bin/bash
+
+graphite_host="graphite.example.org"
+graphite_port="2003"
+graphite_prefix="netstats"
+filters="bytes
+packets
+rx_errs
+Type3
+RetransSegs"
+
+hostname=$(hostname)
+hostname=${hostname//./_}
+prefix="$graphite_prefix.$hostname"
+timestamp=$(date +%s)
+while read line; do
+  line=${line/:}
+  if [ -z $keys ]; then
+    keys=($line)
+  else
+    vals=($line)
+    for i in ${!keys[@]}; do
+      if [ $i -eq 0 ]; then continue; fi
+      stats+="$prefix.${vals[0]}.${keys[$i]} ${vals[$i]} $timestamp\n"
+    done
+    unset keys
+  fi
+done < <(cat /proc/net/snmp /proc/net/netstat)
+keys=(iface rx_bytes rx_packets rx_errs rx_drop rx_fifo rx_frame rx_compressed rx_multicast tx_bytes tx_packets tx_errs tx_drop tx_fifo tx_colls tx_carrier tx_compressed)
+while read line; do
+  line=${line/:}
+  vals=($line)
+  for i in ${!keys[@]}; do
+    if [ $i -eq 0 ]; then continue; fi
+    stats+="$prefix.${vals[0]}.${keys[$i]} ${vals[$i]} $timestamp\n"
+  done
+done < <(egrep -e ':' /proc/net/dev | grep -v 'lo:')
+stats=$(egrep -f <(printf "$filters") <(printf "$stats"))
+printf "$stats" | grep -v ' 0 ' | nc $graphite_host $graphite_port
