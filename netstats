@@ -12,6 +12,10 @@ RetransSegs"
 hostname=$(hostname)
 hostname=${hostname//./_}
 prefix="$graphite_prefix.$hostname"
+delay=($(hostname -I))
+delay[0]=${delay[0]//.}
+delay[0]=$(expr ${delay[0]} % 300)
+sleep ${delay[0]}
 timestamp=$(date +%s)
 while read line; do
   line=${line/:}
